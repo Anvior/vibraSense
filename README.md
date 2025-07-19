@@ -1,6 +1,10 @@
 # VibraSense – AI-Enhanced Vibration & Sound Monitoring System  
 Real-time anomaly detection for electric motors using sensor data, embedded intelligence and machine learning.
 
+VIDEO: https://drive.google.com/file/d/1FYJcLvd5IdcW8n7_DGq1phXYoEPvjXAr/view
+
+
+
 ---
 
 ## 🚀 Overview
