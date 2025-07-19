@@ -1,0 +1,8 @@
+timestamp,mic,accel_x,accel_y,accel_z,anomalía,anomalia_en
+21:25:20,5.24,-0.1255,0.5178,8.7726,1,"['media_mic', 'std_mic', 'std_ax', 'std_ay', 'std_az']"
+21:25:21,4.4,-0.1161,0.5021,8.7836,1,"['media_mic', 'std_mic', 'std_ax', 'std_ay', 'std_az']"
+21:25:22,3.68,-0.113,0.5178,8.7773,0,"['std_mic', 'std_ax', 'std_ay', 'std_az']"
+21:25:23,5.36,-0.1491,0.5084,8.7538,1,"['media_mic', 'std_mic', 'std_ax', 'std_ay']"
+21:25:24,4.8,-0.4817,0.7296,8.9154,0,"['std_ax', 'std_az']"
+21:25:25,6.44,-0.4519,0.317,8.9107,1,"['std_ax', 'media_ay', 'std_ay', 'std_az']"
+21:25:25,6.64,-0.9006,0.6606,8.9719,1,"['media_ax', 'std_ax', 'std_ay', 'std_az']"

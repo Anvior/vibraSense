@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Monitor de Sonido y Vibraciones</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+        .graficos {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 20px;
+        }
+        canvas {
+            width: 48%;
+            max-width: 48%;
+            min-width: 300px;
+            box-sizing: border-box;
+            margin-bottom: 30px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #4285f4;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-bottom: 20px;
+        }
+        #estado-envio {
+            font-weight: bold;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <p>Bienvenido, {{ usuario }} | <a href="/logout">Salir</a></p>
+    <h2>Monitor de Sonido y Vibraciones en Tiempo Real</h2>
+
+    <button onclick="solicitarInforme()">Enviar informe por correo</button>
+    <p id="estado-envio"></p>
+
+    <div class="graficos">
+        <canvas id="micChart"></canvas>
+        <canvas id="accel_xChart"></canvas>
+        <canvas id="accel_yChart"></canvas>
+        <canvas id="accel_zChart"></canvas>
+    </div>
+
+    <script>
+        const MAX_POINTS = 50;
+
+        function createChart(label, color) {
+            return new Chart(document.getElementById(label + "Chart").getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: label.toUpperCase(),
+                        data: [],
+                        borderColor: color,
+                        backgroundColor: 'rgba(0,0,0,0)',
+                        pointRadius: [],
+                        pointBackgroundColor: [],
+                        customTooltips: []
+                    }]
+                },
+                options: {
+                    animation: false,
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(ctx) {
+                                    const label = ctx.dataset.label || '';
+                                    const index = ctx.dataIndex;
+                                    const customTip = ctx.dataset.customTooltips?.[index];
+                                    return `${label}: ${ctx.formattedValue}` + (customTip ? `\n⚠️ ${customTip}` : '');
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { display: false },
+                        y: { beginAtZero: false }
+                    }
+                }
+            });
+        }
+
+        const micChart = createChart('mic', 'blue');
+        const xChart = createChart('accel_x', 'green');
+        const yChart = createChart('accel_y', 'orange');
+        const zChart = createChart('accel_z', 'purple');
+
+        const socket = io();
+
+        socket.on('dato_analizado', (data) => {
+            console.log(data);
+
+            const timestamp = new Date().toLocaleTimeString();
+
+            function update(chart, valor, variable) {
+                const ds = chart.data.datasets[0];
+                chart.data.labels.push(timestamp);
+                ds.data.push(valor);
+
+                function normalizar(nombre) {
+                    return nombre
+                        .replace("media_", "")
+                        .replace("std_", "")
+                        .replace("ax", "accel_x")
+                        .replace("ay", "accel_y")
+                        .replace("az", "accel_z");
+                }
+
+                const anomalias = Array.isArray(data.anomalia_en) ? data.anomalia_en : [data.anomalia_en];
+                const anomalias_normalizadas = anomalias.map(normalizar);
+
+                if (data.anomalía && anomalias_normalizadas.includes(variable)) {
+                    ds.pointBackgroundColor.push('red');
+                    ds.pointRadius.push(4);
+                    ds.customTooltips = ds.customTooltips || [];
+                    const original = anomalias.filter(a => normalizar(a) === variable).join(', ');
+                    ds.customTooltips.push(`Anomalía en ${original}`);
+                } else {
+                    ds.pointBackgroundColor.push('rgba(0,0,0,0)');
+                    ds.pointRadius.push(0);
+                    ds.customTooltips = ds.customTooltips || [];
+                    ds.customTooltips.push('');
+                }
+
+                if (ds.data.length > MAX_POINTS) {
+                    ds.data.shift();
+                    chart.data.labels.shift();
+                    ds.pointRadius.shift();
+                    ds.pointBackgroundColor.shift();
+                    ds.customTooltips.shift();
+                }
+
+                chart.update();
+            }
+
+            update(micChart, data.mic, 'mic');
+            update(xChart, data.accel_x, 'accel_x');
+            update(yChart, data.accel_y, 'accel_y');
+            update(zChart, data.accel_z, 'accel_z');
+
+            if (data.anomalía && data.anomalia_en?.length > 0) {
+                document.body.style.backgroundColor = '#ffcccc';
+                setTimeout(() => {
+                    document.body.style.backgroundColor = 'white';
+                }, 400);
+            }
+        });
+
+        function solicitarInforme() {
+            document.getElementById("estado-envio").innerText = "📤 Enviando informe por correo...";
+            fetch("/exportar", { method: "POST" }).then(res => {
+                document.getElementById("estado-envio").innerText =
+                    res.ok ? "✅ Informe enviado correctamente." : "❌ Error al enviar el informe.";
+            }).catch(() => {
+                document.getElementById("estado-envio").innerText = "❌ Error de conexión con el servidor.";
+            });
+        }
+    </script>
+</body>
+</html>
